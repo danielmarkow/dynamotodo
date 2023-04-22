@@ -3,7 +3,7 @@ export default function Button({
   type,
 }: {
   children: React.ReactNode;
-  type: "button" | "submit" | "reset" | undefined;
+  type?: "button" | "submit" | "reset" | undefined;
 }) {
   return (
     <button
