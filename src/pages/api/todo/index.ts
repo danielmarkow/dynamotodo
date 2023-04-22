@@ -1,4 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+
+import { getAuth } from "@clerk/nextjs/server";
+
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import type { AttributeValue } from "@aws-sdk/client-dynamodb";
@@ -28,6 +31,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<CreateTodoResp | Record<string, AttributeValue>[]>
 ) {
+  const seshion = getAuth(req);
+  const userId = seshion.userId;
+
+  if (userId === null) {
+    res.status(403).json({ message: "not authorized" });
+  }
+
   if (req.method === "POST") {
     const todo = req.body as NewTodo;
     const todoCreatedAt = new Date().toISOString();
@@ -35,7 +45,7 @@ export default async function handler(
     const input = {
       TableName: "todos_dev",
       Item: {
-        userId: { S: "daniel" },
+        userId: { S: userId as string },
         createdAt: { S: todoCreatedAt },
         todoText: { S: todo.todoText },
         due: { S: todo.due },
@@ -59,7 +69,7 @@ export default async function handler(
       TableName: "todos_dev",
       KeyConditionExpression: "userId = :partitionKey",
       ExpressionAttributeValues: {
-        ":partitionKey": "daniel",
+        ":partitionKey": userId as string,
       },
     };
     const command = new QueryCommand(input);
