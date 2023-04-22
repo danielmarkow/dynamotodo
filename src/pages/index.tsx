@@ -9,5 +9,5 @@ export default function Home() {
     },
   });
 
-  return <main>{JSON.stringify(todosQuery.data)}</main>;
+  return <main>{todosQuery.isSuccess && JSON.stringify(todosQuery.data)}</main>;
 }

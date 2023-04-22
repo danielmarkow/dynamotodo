@@ -5,11 +5,6 @@ import type { AttributeValue } from "@aws-sdk/client-dynamodb";
 
 // https://thomasstep.com/blog/how-to-use-the-dynamodb-document-client
 
-export const config = {
-  runtime: "edge",
-  regions: ["fra1"],
-};
-
 const client = new DynamoDBClient({
   region: "eu-central-1",
   credentials: {
