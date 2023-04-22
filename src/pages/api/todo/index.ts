@@ -5,6 +5,11 @@ import type { AttributeValue } from "@aws-sdk/client-dynamodb";
 
 // https://thomasstep.com/blog/how-to-use-the-dynamodb-document-client
 
+export const config = {
+  runtime: "edge",
+  regions: ["fra1"],
+};
+
 const client = new DynamoDBClient({
   region: "eu-central-1",
   credentials: {
@@ -12,6 +17,7 @@ const client = new DynamoDBClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
   },
 });
+const ddbDocClient = DynamoDBDocument.from(client);
 
 type CreateTodoResp = {
   message: string | number;
@@ -54,7 +60,6 @@ export default async function handler(
   }
 
   if (req.method === "GET") {
-    const ddbDocClient = DynamoDBDocument.from(client);
     const input = {
       TableName: "todos_dev",
       KeyConditionExpression: "userId = :partitionKey",
@@ -64,7 +69,7 @@ export default async function handler(
     };
     const command = new QueryCommand(input);
     const response = await ddbDocClient.send(command);
-    ddbDocClient.destroy();
+
     if (response.Items) {
       res.status(200).json(response.Items);
     } else {
