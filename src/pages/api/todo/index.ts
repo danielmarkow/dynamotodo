@@ -6,6 +6,8 @@ import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import type { AttributeValue } from "@aws-sdk/client-dynamodb";
 
+import { z } from "zod";
+
 // https://thomasstep.com/blog/how-to-use-the-dynamodb-document-client
 
 const client = new DynamoDBClient({
@@ -27,6 +29,12 @@ type NewTodo = {
   done: boolean;
 };
 
+const NewTodoSchema = z.object({
+  todoText: z.string().min(1),
+  due: z.string(),
+  done: z.boolean(),
+});
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<CreateTodoResp | Record<string, AttributeValue>[]>
@@ -39,7 +47,16 @@ export default async function handler(
   }
 
   if (req.method === "POST") {
-    const todo = req.body as NewTodo;
+    // validate req body
+    try {
+      NewTodoSchema.parse(JSON.parse(req.body));
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ message: "invalid request body" });
+    }
+
+    const todo = JSON.parse(req.body) as NewTodo;
+    console.log("todo: ", todo);
     const todoCreatedAt = new Date().toISOString();
 
     const input = {

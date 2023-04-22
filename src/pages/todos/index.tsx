@@ -1,3 +1,4 @@
+import CreateTodo from "@/components/CreateTodo";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
 
@@ -18,6 +19,7 @@ export default function TodosLanding() {
         <>
           <p>todos</p>
           {todosQuery.isSuccess && JSON.stringify(todosQuery.data)}
+          <CreateTodo />
         </>
       )}
       {!isSignedIn && <SignInButton>Sign In</SignInButton>}
