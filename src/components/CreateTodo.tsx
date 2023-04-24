@@ -1,22 +1,21 @@
-import type { FieldValues } from "react-hook-form";
 import { useForm } from "react-hook-form";
 
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import Button from "./common/Button";
 import { toast } from "react-hot-toast";
 
 const schema = z.object({
   todoText: z.string().min(1),
-  due: z.string(),
+  // due: z.string(),
 });
 
 type FormValues = {
   todoText: string;
-  due: string;
+  // due: string;
 };
 
 type MutationValues = FormValues & {
@@ -33,6 +32,8 @@ export default function CreateTodo() {
     resolver: zodResolver(schema),
   });
 
+  const queryClient = useQueryClient();
+
   const createTodoMut = useMutation({
     mutationFn: (data: MutationValues) =>
       fetch("/api/todo", {
@@ -41,6 +42,10 @@ export default function CreateTodo() {
       }),
     onError: () => {
       toast.error("error creating todo");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      reset();
     },
   });
 
@@ -52,33 +57,14 @@ export default function CreateTodo() {
   return (
     <div>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="mt-2">
+        <div className="mt-2 mb-2">
           <input
             id="todoText"
             type="text"
             {...register("todoText")}
-            className="block w-1/3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+            className="block md:w-1/3 w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
             placeholder="new todo"
           />
-        </div>
-        <div className="py-2">
-          <label
-            htmlFor="due"
-            className="block text-sm font-medium leading-6 text-gray-900"
-          >
-            Due
-          </label>
-          <input
-            id="due"
-            type="datetime-local"
-            {...register("due")}
-            className="block w-1/3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-          />
-          {errors && (
-            <p className="mt-2 text-sm text-red-600" id="link-url-error">
-              {errors.due?.message as string}
-            </p>
-          )}
         </div>
         <Button type="submit">Create</Button>
       </form>

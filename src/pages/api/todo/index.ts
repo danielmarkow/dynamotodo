@@ -25,13 +25,13 @@ type CreateTodoResp = {
 
 type NewTodo = {
   todoText: string;
-  due: string;
+  // due: string;
   done: boolean;
 };
 
 const NewTodoSchema = z.object({
   todoText: z.string().min(1),
-  due: z.string(),
+  // due: z.string(),
   done: z.boolean(),
 });
 
@@ -56,16 +56,16 @@ export default async function handler(
     }
 
     const todo = JSON.parse(req.body) as NewTodo;
-    console.log("todo: ", todo);
-    const todoCreatedAt = new Date().toISOString();
+    // const todoCreatedAt = new Date().toISOString();
+    const todoCreatedAt = Date.now();
 
     const input = {
       TableName: "todos_dev",
       Item: {
         userId: { S: userId as string },
-        createdAt: { S: todoCreatedAt },
+        createdAt: { N: todoCreatedAt.toString() },
         todoText: { S: todo.todoText },
-        due: { S: todo.due },
+        // due: { S: todo.due },
         done: { BOOL: todo.done },
       },
       ReturnValues: "ALL_OLD",
