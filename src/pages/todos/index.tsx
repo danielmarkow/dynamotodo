@@ -2,6 +2,7 @@ import CreateTodo from "@/components/CreateTodo";
 import Loading from "@/components/common/Loading";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 type Todo = {
   userId: string;
@@ -30,21 +31,22 @@ export default function TodosLanding() {
         <>
           <p>todos</p>
           {todosQuery.isLoading && <Loading />}
-          <ul role="list" className="divide-y divide-gray-200">
+          <ul role="list">
             {todosQuery.isSuccess &&
               todosQuery.data.map((todo: Todo, i: number) => (
-                <>
-                  <li
-                    key={i}
-                    className="relative bg-white border-2 rounded-lg cursor-pointer shadow-sm px-4 py-5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 hover:bg-gray-50 md:w-1/3 w-full"
-                  >
-                    <div className="flex justify-between space-x-3">
-                      <p className="truncate font-medium text-lg text-gray-900">
+                <li
+                  key={i}
+                  className="relative bg-white border-2 rounded-lg cursor-pointer px-4 py-2 hover:bg-gray-50 border-gray-600 md:w-1/3 w-full mt-1"
+                >
+                  <div className="flex justify-between space-x-3">
+                    <div className="truncate font-medium text-lg text-gray-900">
+                      <div className="flex gap-3 items-center">
+                        <CheckCircleIcon className="h-5 w-5" />
                         {todo.todoText}
-                      </p>
+                      </div>
                     </div>
-                  </li>
-                </>
+                  </div>
+                </li>
               ))}
           </ul>
 

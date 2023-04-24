@@ -10,12 +10,10 @@ import { toast } from "react-hot-toast";
 
 const schema = z.object({
   todoText: z.string().min(1),
-  // due: z.string(),
 });
 
 type FormValues = {
   todoText: string;
-  // due: string;
 };
 
 type MutationValues = FormValues & {
@@ -50,14 +48,13 @@ export default function CreateTodo() {
   });
 
   const onSubmit = (data: FormValues) => {
-    console.log({ ...data, done: false });
     createTodoMut.mutate({ ...data, done: false });
   };
 
   return (
     <div>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="mt-2 mb-2">
+        <div className="mt-5 mb-2">
           <input
             id="todoText"
             type="text"
