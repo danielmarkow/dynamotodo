@@ -36,6 +36,3 @@ next-env.d.ts
 
 # environment vars
 .env
-
-# aws cf scripts
-cloudformation

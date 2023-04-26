@@ -75,7 +75,7 @@ export default function TodosLanding() {
                     <div
                       className={classNames(
                         todo.done
-                          ? "truncate font-medium text-lg text-gray-400"
+                          ? "truncate font-medium text-lg text-gray-400 line-through"
                           : "truncate font-medium text-lg text-gray-900"
                       )}
                     >
