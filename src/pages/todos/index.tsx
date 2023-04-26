@@ -17,6 +17,10 @@ type MutationValues = {
   done?: boolean;
 };
 
+const classNames = (...classes: string[]) => {
+  return classes.filter(Boolean).join(" ");
+};
+
 export default function TodosLanding() {
   const { isLoaded: userLoaded, isSignedIn } = useUser();
 
@@ -66,7 +70,13 @@ export default function TodosLanding() {
                   <div className="flex justify-between space-x-3">
                     <div className="truncate font-medium text-lg text-gray-900">
                       <div className="flex gap-3 items-center">
-                        <CheckCircleIcon className="h-5 w-5" />
+                        <CheckCircleIcon
+                          className={classNames(
+                            todo.done
+                              ? "h-5 w-5 fill-green-800 stroke-white"
+                              : "h-5 w-5"
+                          )}
+                        />
                         {todo.todoText}
                       </div>
                     </div>
