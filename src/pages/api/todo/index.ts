@@ -25,14 +25,22 @@ type CreateTodoResp = {
 
 type NewTodo = {
   todoText: string;
-  // due: string;
   done: boolean;
+};
+
+type ChangeTodo = {
+  todoText?: string;
+  done?: boolean;
 };
 
 const NewTodoSchema = z.object({
   todoText: z.string().min(1),
-  // due: z.string(),
   done: z.boolean(),
+});
+
+const ChangeTodoSchema = z.object({
+  todoText: z.string().optional(),
+  done: z.boolean().optional(),
 });
 
 export default async function handler(
@@ -97,5 +105,34 @@ export default async function handler(
     } else {
       res.status(500).json({ message: "failed to get todos" });
     }
+  }
+
+  if (req.method === "PUT") {
+    try {
+      ChangeTodoSchema.parse(JSON.parse(req.body));
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ message: "invalid request body" });
+    }
+
+    const todo = JSON.parse(req.body) as ChangeTodo;
+    let myUpdateExpression = "SET ";
+
+    if (todo.done !== undefined) {
+      myUpdateExpression += "done = :valdone,";
+    }
+
+    if (todo.todoText !== undefined) {
+      myUpdateExpression += "todoText = :valtext,";
+    }
+
+    if (todo.todoText === undefined && todo.done === undefined) {
+      res.status(400).json({ message: "invalid request body" });
+    }
+
+    // slice the trailing comma
+    myUpdateExpression = myUpdateExpression.slice(0, -1);
+
+    // TODO implement update
   }
 }

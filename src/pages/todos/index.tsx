@@ -8,7 +8,6 @@ type Todo = {
   userId: string;
   createdAt: string;
   todoText: string;
-  // due: string;
   done: boolean;
 };
 
