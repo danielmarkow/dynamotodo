@@ -65,23 +65,30 @@ export default function TodosLanding() {
                     });
                   }}
                   key={i}
-                  className="relative bg-white border-2 rounded-lg cursor-pointer px-4 py-2 hover:bg-gray-50 border-gray-600 md:w-1/3 w-full mt-1"
+                  className={classNames(
+                    todo.done
+                      ? "relative bg-white border-2 rounded-lg cursor-pointer px-4 py-2 hover:bg-gray-50 border-gray-400 md:w-1/3 w-full mt-1"
+                      : "relative bg-white border-2 rounded-lg cursor-pointer px-4 py-2 hover:bg-gray-50 border-gray-600 md:w-1/3 w-full mt-1"
+                  )}
                 >
                   <div className="flex justify-between space-x-3">
-                    <div className="truncate font-medium text-lg text-gray-900">
+                    <div
+                      className={classNames(
+                        todo.done
+                          ? "truncate font-medium text-lg text-gray-400"
+                          : "truncate font-medium text-lg text-gray-900"
+                      )}
+                    >
                       <div className="flex gap-3 items-center">
                         <CheckCircleIcon
                           className={classNames(
-                            todo.done
-                              ? "h-5 w-5 fill-green-800 stroke-white"
-                              : "h-5 w-5"
+                            todo.done ? "h-8 w-8 text-green-400" : "h-8 w-8"
                           )}
                         />
                         {todo.todoText}
                       </div>
                     </div>
                   </div>
-                  {todo.done.toString()}
                 </li>
               ))}
           </ul>
