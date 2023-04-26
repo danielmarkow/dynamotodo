@@ -2,9 +2,13 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getAuth } from "@clerk/nextjs/server";
 
-import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBClient,
+  PutItemCommand,
+  UpdateItemCommand,
+} from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import type { AttributeValue } from "@aws-sdk/client-dynamodb";
+import { AttributeValue } from "@aws-sdk/client-dynamodb";
 
 import { z } from "zod";
 
@@ -29,6 +33,7 @@ type NewTodo = {
 };
 
 type ChangeTodo = {
+  createdAt: number;
   todoText?: string;
   done?: boolean;
 };
@@ -39,6 +44,7 @@ const NewTodoSchema = z.object({
 });
 
 const ChangeTodoSchema = z.object({
+  createdAt: z.number(),
   todoText: z.string().optional(),
   done: z.boolean().optional(),
 });
@@ -111,19 +117,25 @@ export default async function handler(
     try {
       ChangeTodoSchema.parse(JSON.parse(req.body));
     } catch (error) {
-      console.log(error);
+      console.log("schema validation", error);
       res.status(400).json({ message: "invalid request body" });
     }
 
     const todo = JSON.parse(req.body) as ChangeTodo;
     let myUpdateExpression = "SET ";
+    let myExpressionAttributeValues = {} as {
+      ":valdone"?: { BOOL: boolean };
+      ":valtext"?: { S: string };
+    };
 
     if (todo.done !== undefined) {
       myUpdateExpression += "done = :valdone,";
+      myExpressionAttributeValues[":valdone"] = { BOOL: todo.done };
     }
 
     if (todo.todoText !== undefined) {
       myUpdateExpression += "todoText = :valtext,";
+      myExpressionAttributeValues[":valtext"] = { S: todo.todoText };
     }
 
     if (todo.todoText === undefined && todo.done === undefined) {
@@ -133,6 +145,23 @@ export default async function handler(
     // slice the trailing comma
     myUpdateExpression = myUpdateExpression.slice(0, -1);
 
-    // TODO implement update
+    const { Attributes } = await client.send(
+      new UpdateItemCommand({
+        TableName: "todos_dev",
+        Key: {
+          userId: { S: userId as string },
+          createdAt: { N: todo.createdAt.toString() },
+        },
+        UpdateExpression: myUpdateExpression,
+        ExpressionAttributeValues: myExpressionAttributeValues,
+        ReturnValues: "ALL_NEW",
+      })
+    );
+
+    if (Attributes) {
+      res.status(200).json({ message: "successfully modfiyed" });
+    } else {
+      res.status(500).json({ message: "error updating" });
+    }
   }
 }

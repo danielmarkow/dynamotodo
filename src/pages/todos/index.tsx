@@ -1,7 +1,7 @@
 import CreateTodo from "@/components/CreateTodo";
 import Loading from "@/components/common/Loading";
 import { SignInButton, useUser } from "@clerk/nextjs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 type Todo = {
@@ -11,14 +11,34 @@ type Todo = {
   done: boolean;
 };
 
+type MutationValues = {
+  createdAt: string;
+  todoText?: string;
+  done?: boolean;
+};
+
 export default function TodosLanding() {
   const { isLoaded: userLoaded, isSignedIn } = useUser();
+
+  const queryClient = useQueryClient();
 
   const todosQuery = useQuery({
     queryKey: ["todos"],
     queryFn: async () => {
       const res = await fetch("/api/todo");
       return res.json();
+    },
+  });
+
+  const updateTodoMut = useMutation({
+    mutationFn: async (data: MutationValues) => {
+      const res = await fetch("/api/todo", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });
 
@@ -34,6 +54,12 @@ export default function TodosLanding() {
             {todosQuery.isSuccess &&
               todosQuery.data.map((todo: Todo, i: number) => (
                 <li
+                  onClick={() => {
+                    updateTodoMut.mutate({
+                      createdAt: todo.createdAt,
+                      done: !todo.done,
+                    });
+                  }}
                   key={i}
                   className="relative bg-white border-2 rounded-lg cursor-pointer px-4 py-2 hover:bg-gray-50 border-gray-600 md:w-1/3 w-full mt-1"
                 >
@@ -45,6 +71,7 @@ export default function TodosLanding() {
                       </div>
                     </div>
                   </div>
+                  {todo.done.toString()}
                 </li>
               ))}
           </ul>
