@@ -29,7 +29,7 @@ export default function TodosLanding() {
   const todosQuery = useQuery({
     queryKey: ["todos"],
     queryFn: async () => {
-      const res = await fetch("/api/todo");
+      const res = await fetch("/api/todos");
       return res.json();
     },
   });

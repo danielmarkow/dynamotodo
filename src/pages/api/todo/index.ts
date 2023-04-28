@@ -1,4 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
+import { NextFetchEvent, NextRequest } from "next/server";
 
 import { getAuth } from "@clerk/nextjs/server";
 
@@ -7,10 +8,15 @@ import {
   PutItemCommand,
   UpdateItemCommand,
 } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocument, QueryCommand } from "@aws-sdk/lib-dynamodb";
+
 import { AttributeValue } from "@aws-sdk/client-dynamodb";
 
 import { z } from "zod";
+
+export const config = {
+  runtime: "edge",
+  regions: ["fra1"],
+};
 
 // https://thomasstep.com/blog/how-to-use-the-dynamodb-document-client
 
@@ -21,7 +27,6 @@ const client = new DynamoDBClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
   },
 });
-const ddbDocClient = DynamoDBDocument.from(client);
 
 type CreateTodoResp = {
   message: string | number;
@@ -49,27 +54,33 @@ const ChangeTodoSchema = z.object({
   done: z.boolean().optional(),
 });
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<CreateTodoResp | Record<string, AttributeValue>[]>
+export default async function EdgeFunction(
+  request: NextRequest,
+  context: NextFetchEvent
 ) {
-  const seshion = getAuth(req);
+  const seshion = getAuth(request);
   const userId = seshion.userId;
 
   if (userId === null) {
-    res.status(403).json({ message: "not authorized" });
+    // res.status(403).json({ message: "not authorized" });
+    return NextResponse.json({ message: "not authorized", status: 403 });
   }
 
-  if (req.method === "POST") {
+  const json = await request.json();
+
+  if (request.method === "POST") {
     // validate req body
     try {
-      NewTodoSchema.parse(JSON.parse(req.body));
+      NewTodoSchema.parse(json);
     } catch (error) {
-      console.log(error);
-      res.status(400).json({ message: "invalid request body" });
+      // res.status(400).json({ message: "invalid request body" });
+      return NextResponse.json({
+        message: "invalid request body",
+        status: 400,
+      });
     }
 
-    const todo = JSON.parse(req.body) as NewTodo;
+    const todo = json as NewTodo;
     // const todoCreatedAt = new Date().toISOString();
     const todoCreatedAt = Date.now();
 
@@ -89,39 +100,30 @@ export default async function handler(
     const response = await client.send(command);
 
     if (response) {
-      res.status(200).json({ message: todoCreatedAt });
+      // res.status(200).json({ message: todoCreatedAt });
+      return NextResponse.json({ message: todoCreatedAt, status: 200 });
     } else {
-      res.status(500).json({ message: "failed to create db entry" });
+      // res.status(500).json({ message: "failed to create db entry" });
+      return NextResponse.json({
+        message: "failed to create db entry",
+        status: 500,
+      });
     }
   }
 
-  if (req.method === "GET") {
-    const input = {
-      TableName: "todos_dev",
-      KeyConditionExpression: "userId = :partitionKey",
-      ExpressionAttributeValues: {
-        ":partitionKey": userId as string,
-      },
-    };
-    const command = new QueryCommand(input);
-    const response = await ddbDocClient.send(command);
-
-    if (response.Items) {
-      res.status(200).json(response.Items);
-    } else {
-      res.status(500).json({ message: "failed to get todos" });
-    }
-  }
-
-  if (req.method === "PUT") {
+  if (request.method === "PUT") {
     try {
-      ChangeTodoSchema.parse(JSON.parse(req.body));
+      ChangeTodoSchema.parse(json);
     } catch (error) {
-      console.log("schema validation", error);
-      res.status(400).json({ message: "invalid request body" });
+      // res.status(400).json({ message: "invalid request body" });
+      return NextResponse.json({
+        message: "invalid request body",
+        status: 400,
+      });
     }
 
-    const todo = JSON.parse(req.body) as ChangeTodo;
+    // const todo = JSON.parse(req.body) as ChangeTodo;
+    const todo = json as ChangeTodo;
     let myUpdateExpression = "SET ";
     let myExpressionAttributeValues = {} as {
       ":valdone"?: { BOOL: boolean };
@@ -139,7 +141,11 @@ export default async function handler(
     }
 
     if (todo.todoText === undefined && todo.done === undefined) {
-      res.status(400).json({ message: "invalid request body" });
+      // res.status(400).json({ message: "invalid request body" });
+      return NextResponse.json({
+        message: "invalid request body",
+        status: 400,
+      });
     }
 
     // slice the trailing comma
@@ -159,9 +165,14 @@ export default async function handler(
     );
 
     if (Attributes) {
-      res.status(200).json({ message: "successfully modfiyed" });
+      // res.status(200).json({ message: "successfully modfiyed" });
+      return NextResponse.json({
+        message: "successfully modfiyed",
+        status: 200,
+      });
     } else {
-      res.status(500).json({ message: "error updating" });
+      // res.status(500).json({ message: "error updating" });
+      return NextResponse.json({ message: "error updating", status: 500 });
     }
   }
 }
