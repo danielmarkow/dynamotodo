@@ -10,6 +10,8 @@ type TodoResp = {
   message: string;
 };
 
+// https://thomasstep.com/blog/how-to-use-the-dynamodb-document-client
+
 const client = new DynamoDBClient({
   region: "eu-central-1",
   credentials: {

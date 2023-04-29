@@ -7,9 +7,8 @@ import {
   DynamoDBClient,
   PutItemCommand,
   UpdateItemCommand,
+  DeleteItemCommand,
 } from "@aws-sdk/client-dynamodb";
-
-import { AttributeValue } from "@aws-sdk/client-dynamodb";
 
 import { z } from "zod";
 
@@ -18,8 +17,6 @@ export const config = {
   regions: ["fra1"],
 };
 
-// https://thomasstep.com/blog/how-to-use-the-dynamodb-document-client
-
 const client = new DynamoDBClient({
   region: "eu-central-1",
   credentials: {
@@ -27,10 +24,6 @@ const client = new DynamoDBClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
   },
 });
-
-type CreateTodoResp = {
-  message: string | number;
-};
 
 type NewTodo = {
   todoText: string;
@@ -41,6 +34,10 @@ type ChangeTodo = {
   createdAt: number;
   todoText?: string;
   done?: boolean;
+};
+
+type DeleteTodo = {
+  createdAt: number;
 };
 
 const NewTodoSchema = z.object({
@@ -54,6 +51,10 @@ const ChangeTodoSchema = z.object({
   done: z.boolean().optional(),
 });
 
+const DeleteTodoSchema = z.object({
+  createdAt: z.number(),
+});
+
 export default async function EdgeFunction(
   request: NextRequest,
   context: NextFetchEvent
@@ -62,26 +63,40 @@ export default async function EdgeFunction(
   const userId = seshion.userId;
 
   if (userId === null) {
-    // res.status(403).json({ message: "not authorized" });
-    return NextResponse.json({ message: "not authorized", status: 403 });
+    return new Response(
+      JSON.stringify({
+        message: "not authorized",
+      }),
+      {
+        status: 403,
+        headers: {
+          "content-type": "application/json",
+        },
+      }
+    );
   }
 
-  const json = await request.json();
-
   if (request.method === "POST") {
+    const json = await request.json();
+
     // validate req body
     try {
       NewTodoSchema.parse(json);
     } catch (error) {
-      // res.status(400).json({ message: "invalid request body" });
-      return NextResponse.json({
-        message: "invalid request body",
-        status: 400,
-      });
+      return new Response(
+        JSON.stringify({
+          message: "invalid request body",
+        }),
+        {
+          status: 400,
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      );
     }
 
     const todo = json as NewTodo;
-    // const todoCreatedAt = new Date().toISOString();
     const todoCreatedAt = Date.now();
 
     const input = {
@@ -90,7 +105,6 @@ export default async function EdgeFunction(
         userId: { S: userId as string },
         createdAt: { N: todoCreatedAt.toString() },
         todoText: { S: todo.todoText },
-        // due: { S: todo.due },
         done: { BOOL: todo.done },
       },
       ReturnValues: "ALL_OLD",
@@ -100,29 +114,51 @@ export default async function EdgeFunction(
     const response = await client.send(command);
 
     if (response) {
-      // res.status(200).json({ message: todoCreatedAt });
-      return NextResponse.json({ message: todoCreatedAt, status: 200 });
+      return new Response(
+        JSON.stringify({
+          message: todoCreatedAt,
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      );
     } else {
-      // res.status(500).json({ message: "failed to create db entry" });
-      return NextResponse.json({
-        message: "failed to create db entry",
-        status: 500,
-      });
+      return new Response(
+        JSON.stringify({
+          message: "failed to create db entry",
+        }),
+        {
+          status: 500,
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      );
     }
   }
 
   if (request.method === "PUT") {
+    const json = await request.json();
+
     try {
       ChangeTodoSchema.parse(json);
     } catch (error) {
-      // res.status(400).json({ message: "invalid request body" });
-      return NextResponse.json({
-        message: "invalid request body",
-        status: 400,
-      });
+      return new Response(
+        JSON.stringify({
+          message: "invalid request body",
+        }),
+        {
+          status: 400,
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      );
     }
 
-    // const todo = JSON.parse(req.body) as ChangeTodo;
     const todo = json as ChangeTodo;
     let myUpdateExpression = "SET ";
     let myExpressionAttributeValues = {} as {
@@ -141,11 +177,17 @@ export default async function EdgeFunction(
     }
 
     if (todo.todoText === undefined && todo.done === undefined) {
-      // res.status(400).json({ message: "invalid request body" });
-      return NextResponse.json({
-        message: "invalid request body",
-        status: 400,
-      });
+      return new Response(
+        JSON.stringify({
+          message: "invalid request body",
+        }),
+        {
+          status: 400,
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      );
     }
 
     // slice the trailing comma
@@ -165,14 +207,67 @@ export default async function EdgeFunction(
     );
 
     if (Attributes) {
-      // res.status(200).json({ message: "successfully modfiyed" });
-      return NextResponse.json({
-        message: "successfully modfiyed",
-        status: 200,
-      });
+      return new Response(
+        JSON.stringify({
+          message: "successfully modified",
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      );
     } else {
-      // res.status(500).json({ message: "error updating" });
-      return NextResponse.json({ message: "error updating", status: 500 });
+      return new Response(
+        JSON.stringify({
+          message: "error updating",
+        }),
+        {
+          status: 500,
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      );
     }
+  }
+
+  if (request.method === "DELETE") {
+    console.log("here");
+    const json = await request.json();
+    // validate req body
+    try {
+      DeleteTodoSchema.parse(json);
+    } catch (error) {
+      return NextResponse.json({
+        message: "invalid request body",
+        status: 400,
+      });
+    }
+
+    const todo = json as DeleteTodo;
+
+    await client.send(
+      new DeleteItemCommand({
+        TableName: "todos_dev",
+        Key: {
+          userId: { S: userId },
+          createdAt: { N: todo.createdAt.toString() },
+        },
+      })
+    );
+
+    return new Response(
+      JSON.stringify({
+        message: "deleted",
+      }),
+      {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+        },
+      }
+    );
   }
 }
